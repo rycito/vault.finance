@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAULT.finance</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0e0f11;--bg2:#151618;--bg3:#1c1d20;--bg4:#242528;
+    --amber:#d4900a;--amber2:#f0b429;--amber3:#ffd166;
+    --text:#e8e6e0;--muted:#7a7870;--border:#2a2b2e;
+    --green:#3da374;--red:#d45c5c;--blue:#5c8dd4;
+    --font-mono:'IBM Plex Mono',monospace;--font-ui:'Syne',sans-serif;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:14px;min-height:100vh}
+  .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0}
+  .logo{font-family:var(--font-ui);font-size:16px;font-weight:600;color:var(--amber2);letter-spacing:0.08em}
+  .logo span{color:var(--muted);font-weight:400}
+  .tabs{display:flex;gap:2px;background:var(--bg3);padding:3px;border-radius:6px}
+  .tab{padding:5px 14px;border-radius:4px;cursor:pointer;font-size:12px;letter-spacing:0.05em;color:var(--muted);border:none;background:transparent;font-family:var(--font-ui)}
+  .tab.active{background:var(--bg4);color:var(--text)}
+  .clock{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+  .main{display:flex;flex:1;overflow:hidden}
+  .sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;overflow-y:auto}
+  .sidebar-section{font-size:10px;letter-spacing:0.12em;color:var(--muted);padding:8px 8px 4px;text-transform:uppercase}
+  .sidebar-item{padding:7px 10px;border-radius:4px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;border:none;background:transparent;width:100%;font-family:var(--font-ui);text-align:left}
+  .sidebar-item:hover{background:var(--bg3);color:var(--text)}
+  .sidebar-item.active{background:var(--bg4);color:var(--amber2)}
+  .sidebar-item .dot{width:6px;height:6px;border-radius:50%;background:var(--amber)}
+  .content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+  .page{display:none;flex-direction:column;gap:16px}
+  .page.active{display:flex}
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .stat{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+  .stat-label{font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+  .stat-val{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--text)}
+  .stat-sub{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:3px}
+  .stat-val.pos{color:var(--green)}
+  .stat-val.neg{color:var(--red)}
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .panel-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .panel-title{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13px}
+  th{padding:8px 16px;text-align:left;font-size:10px;letter-spacing:0.1em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400;text-transform:uppercase}
+  td{padding:10px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,0.02)}
+  .coin-name{display:flex;align-items:center;gap:8px;font-family:var(--font-ui)}
+  .coin-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:var(--bg4);color:var(--amber2)}
+  .badge{padding:2px 7px;border-radius:3px;font-size:11px}
+  .badge.pos{background:rgba(61,163,116,0.15);color:var(--green)}
+  .badge.neg{background:rgba(212,92,92,0.15);color:var(--red)}
+  .btn{padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--font-ui);letter-spacing:0.05em;border:1px solid var(--border);background:var(--bg3);color:var(--text)}
+  .btn:hover{border-color:var(--amber);color:var(--amber2)}
+  .btn-primary{background:var(--amber);color:#000;border-color:var(--amber);font-weight:600}
+  .btn-primary:hover{background:var(--amber2)}
+  .btn-sm{padding:4px 10px;font-size:11px}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:24px;width:380px;display:flex;flex-direction:column;gap:16px;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:15px;font-weight:600;color:var(--amber2)}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-label{font-size:11px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase}
+  .form-input{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;outline:none}
+  .form-input:focus{border-color:var(--amber)}
+  .form-select{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 12px;color:var(--text);font-family:var(--font-ui);font-size:13px;outline:none}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .search-results{background:var(--bg3);border:1px solid var(--border);border-radius:4px;max-height:160px;overflow-y:auto;display:none}
+  .search-result-item{padding:8px 12px;cursor:pointer;font-size:13px;font-family:var(--font-mono)}
+  .search-result-item:hover{background:var(--bg4);color:var(--amber2)}
+  .progress-bar{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:2px;background:var(--amber)}
+  .tx-row{padding:10px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:100px 1fr 90px 90px 110px auto;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px}
+  .tx-row:last-child{border-bottom:none}
+  .tx-row:hover{background:rgba(255,255,255,0.02)}
+  .tx-head{padding:8px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:100px 1fr 90px 90px 110px auto;gap:8px;font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase}
+  .cat-pill{padding:2px 8px;border-radius:3px;font-size:11px;cursor:pointer;font-family:var(--font-ui)}
+  .empty-state{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+  .budget-bar{margin-bottom:12px}
+  .budget-label-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px}
+  .account-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .account-header{display:flex;justify-content:space-between;align-items:center}
+  .account-name{font-size:14px;font-weight:600}
+  .account-type{font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase}
+  .account-bal{font-family:var(--font-mono);font-size:22px;color:var(--amber2)}
+  .account-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+  .notification{position:fixed;top:60px;right:20px;background:var(--bg3);border:1px solid var(--amber);border-radius:5px;padding:10px 16px;font-size:13px;color:var(--amber2);z-index:200;display:none;max-width:280px}
+  .chart-container{padding:16px;position:relative}
+  .range-btns{display:flex;gap:4px}
+  .range-btn{padding:3px 10px;border-radius:3px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font-mono)}
+  .range-btn.active{background:var(--bg4);color:var(--amber2);border-color:var(--amber)}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo">VAULT<span>.finance</span></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('portfolio')">Portfolio</button>
+    <button class="tab" onclick="showPage('transactions')">Transactions</button>
+    <button class="tab" onclick="showPage('budget')">Budget</button>
+    <button class="tab" onclick="showPage('accounts')">Accounts</button>
+    <button class="tab" onclick="showPage('analytics')">Analytics</button>
+  </div>
+  <div class="clock" id="clock"></div>
+</div>
+
+<div class="main">
+<div class="sidebar">
+  <div class="sidebar-section">Portfolios</div>
+  <button class="sidebar-item active" onclick="setPortfolio('crypto',this)"><span>Crypto Main</span><div class="dot"></div></button>
+  <button class="sidebar-item" onclick="setPortfolio('trading',this)"><span>Trading</span></button>
+  <button class="sidebar-item" onclick="setPortfolio('isa',this)"><span>ISA</span></button>
+  <button class="sidebar-item" onclick="setPortfolio('joint',this)"><span>Joint Savings</span></button>
+  <div class="sidebar-section">Actions</div>
+  <button class="sidebar-item" onclick="openAddHolding()"><span>+ Add Holding</span></button>
+  <button class="sidebar-item" onclick="openAddTx()"><span>+ Add Transaction</span></button>
+  <button class="sidebar-item" onclick="document.getElementById('csvFile').click()"><span>↑ Import CSV</span></button>
+  <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(event)">
+  <div class="sidebar-section">Export</div>
+  <button class="sidebar-item" onclick="exportCSV('transactions')"><span>↓ Transactions</span></button>
+  <button class="sidebar-item" onclick="exportCSV('holdings')"><span>↓ Holdings</span></button>
+  <button class="sidebar-item" onclick="exportCSV('budget')"><span>↓ Budget</span></button>
+</div>
+
+<div class="content">
+
+<!-- PORTFOLIO PAGE -->
+<div class="page active" id="page-portfolio">
+  <div class="stat-row">
+    <div class="stat"><div class="stat-label">Portfolio Value</div><div class="stat-val" id="stat-total">—</div><div class="stat-sub" id="stat-gbp-sub"></div></div>
+    <div class="stat"><div class="stat-label">GBP Invested</div><div class="stat-val" id="stat-invested">—</div><div class="stat-sub">cost basis</div></div>
+    <div class="stat"><div class="stat-label">Total P&L</div><div class="stat-val" id="stat-pnl">—</div><div class="stat-sub" id="stat-pnl-pct"></div></div>
+    <div class="stat"><div class="stat-label">24h Change</div><div class="stat-val" id="stat-24h">—</div><div class="stat-sub"><span class="live-dot"></span>live prices</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Holdings — <span id="portfolio-label">Crypto Main</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)" id="price-status">Fetching prices...</span>
+        <button class="btn btn-sm" onclick="refreshPrices()">↻ Refresh</button>
+        <button class="btn btn-sm btn-primary" onclick="openAddHolding()">+ Add</button>
+      </div>
+    </div>
+    <div>
+      <table><thead><tr><th>Asset</th><th>Holdings</th><th>Price (GBP)</th><th>Value (GBP)</th><th>Invested (GBP)</th><th>P&L</th><th>24h</th><th></th></tr></thead>
+      <tbody id="holdings-table"></tbody></table>
+      <div class="empty-state" id="holdings-empty" style="display:none">No holdings. Add one above.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS PAGE -->
+<div class="page" id="page-transactions">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input class="form-input" style="flex:1;min-width:160px" placeholder="Search transactions..." oninput="filterTx()" id="tx-search">
+    <select class="form-select" onchange="filterTx()" id="tx-cat-filter"><option value="">All categories</option></select>
+    <button class="btn btn-sm btn-primary" onclick="openAddTx()">+ Add</button>
+    <button class="btn btn-sm" onclick="document.getElementById('csvFile2').click()">↑ CSV</button>
+    <button class="btn btn-sm" onclick="exportCSV('transactions')">↓ Export</button>
+    <input type="file" id="csvFile2" accept=".csv" style="display:none" onchange="handleCSV(event)">
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Transaction Ledger</div>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--muted)" id="tx-count">0 transactions</div>
+    </div>
+    <div class="tx-head"><div>Date</div><div>Description</div><div>Amount</div><div>Currency</div><div>Category</div><div>Port.</div></div>
+    <div id="tx-list"></div>
+    <div class="empty-state" id="tx-empty">No transactions yet. Import a CSV or add manually.</div>
+  </div>
+</div>
+
+<!-- BUDGET PAGE -->
+<div class="page" id="page-budget">
+  <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Total Spent (Month)</div><div class="stat-val" id="budget-spent">£0</div></div>
+    <div class="stat"><div class="stat-label">Total Budget</div><div class="stat-val" id="budget-total-val">£0</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-val" id="budget-remaining">£0</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Category Budgets</div><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="exportCSV('budget')">↓ Export</button><button class="btn btn-sm" onclick="openBudgetEdit()">Edit</button></div></div>
+      <div style="padding:16px" id="budget-bars"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Spending by Category</div></div>
+      <div class="chart-container"><canvas id="budget-chart" height="220"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNTS PAGE -->
+<div class="page" id="page-accounts">
+  <div style="display:flex;justify-content:flex-end"><button class="btn btn-sm btn-primary" onclick="openAddAccount()">+ Add Account</button></div>
+  <div class="account-grid" id="account-grid"></div>
+</div>
+
+<!-- ANALYTICS PAGE -->
+<div class="page" id="page-analytics">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Transaction History — Spending Over Time</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="range-btns" id="tx-range-btns">
+          <button class="range-btn active" onclick="setTxRange(30,this)">1M</button>
+          <button class="range-btn" onclick="setTxRange(90,this)">3M</button>
+          <button class="range-btn" onclick="setTxRange(180,this)">6M</button>
+          <button class="range-btn" onclick="setTxRange(365,this)">1Y</button>
+          <button class="range-btn" onclick="setTxRange(9999,this)">All</button>
+        </div>
+        <button class="btn btn-sm" onclick="exportCSV('transactions')">↓ Export</button>
+      </div>
+    </div>
+    <div class="chart-container"><canvas id="tx-history-chart" height="200"></canvas></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Crypto P&L Over Time</div>
+        <div class="range-btns" id="pnl-range-btns">
+          <button class="range-btn active" onclick="setPnlRange(7,this)">7D</button>
+          <button class="range-btn" onclick="setPnlRange(30,this)">1M</button>
+          <button class="range-btn" onclick="setPnlRange(90,this)">3M</button>
+          <button class="range-btn" onclick="setPnlRange(365,this)">1Y</button>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="pnl-chart" height="220"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Portfolio Allocation</div>
+        <div style="font-size:11px;color:var(--muted)" id="alloc-port-label">Crypto Main</div>
+      </div>
+      <div class="chart-container"><canvas id="alloc-chart" height="220"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Category Breakdown — Last 30 Days</div></div>
+    <div class="chart-container"><canvas id="cat-bar-chart" height="160"></canvas></div>
+  </div>
+</div>
+
+</div><!-- content -->
+</div><!-- main -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-holding">
+  <div class="modal">
+    <div class="modal-title">Add Holding</div>
+    <div class="form-group"><div class="form-label">Portfolio</div>
+      <select class="form-select" id="h-portfolio"><option value="crypto">Crypto Main</option><option value="trading">Trading</option><option value="isa">ISA</option><option value="joint">Joint Savings</option></select></div>
+    <div class="form-group"><div class="form-label">Search Coin / Asset</div>
+      <input class="form-input" id="h-search" placeholder="e.g. bitcoin, solana..." oninput="searchCoins(this.value)">
+      <div class="search-results" id="coin-results"></div>
+      <input type="hidden" id="h-coin-id"><input type="hidden" id="h-coin-symbol">
+      <input class="form-input" id="h-coin-name" placeholder="Selected coin..." style="margin-top:6px" readonly></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Amount Held</div><input class="form-input" id="h-amount" type="number" placeholder="0.00"></div>
+      <div class="form-group"><div class="form-label">GBP Invested</div><input class="form-input" id="h-invested" type="number" placeholder="0.00"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('modal-holding')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHolding()">Add Holding</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <div class="modal-title">Add Transaction</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Date</div><input class="form-input" id="tx-date" type="date"></div>
+      <div class="form-group"><div class="form-label">Portfolio</div>
+        <select class="form-select" id="tx-port"><option value="crypto">Crypto Main</option><option value="trading">Trading</option><option value="isa">ISA</option><option value="joint">Joint Savings</option></select></div>
+    </div>
+    <div class="form-group"><div class="form-label">Description</div><input class="form-input" id="tx-desc" placeholder="e.g. Tesco, BTC Purchase..."></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Amount (GBP)</div><input class="form-input" id="tx-amount" type="number" placeholder="0.00"></div>
+      <div class="form-group"><div class="form-label">Category</div>
+        <select class="form-select" id="tx-cat"><option>Groceries</option><option>Transport</option><option>Eating Out</option><option>Entertainment</option><option>Investment</option><option>Crypto Buy</option><option>Crypto Sell</option><option>Salary</option><option>Utilities</option><option>Shopping</option><option>Subscriptions</option><option>Other</option></select></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted)">Categories are remembered per merchant for auto-categorisation.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('modal-tx')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTx()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-budget">
+  <div class="modal" style="width:440px">
+    <div class="modal-title">Edit Category Budgets</div>
+    <div id="budget-edit-fields" style="display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('modal-budget')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBudgets()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-account">
+  <div class="modal">
+    <div class="modal-title">Add Account</div>
+    <div class="form-group"><div class="form-label">Account Name</div><input class="form-input" id="acc-name" placeholder="e.g. Joint Savings, ISA..."></div>
+    <div class="form-group"><div class="form-label">Type</div>
+      <select class="form-select" id="acc-type"><option>Current Account</option><option>Savings</option><option>ISA</option><option>Joint</option><option>Investment</option><option>Crypto Exchange</option></select></div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Balance (GBP)</div><input class="form-input" id="acc-bal" type="number" placeholder="0.00"></div>
+      <div class="form-group"><div class="form-label">Currency</div><select class="form-select" id="acc-currency"><option>GBP</option><option>USD</option><option>EUR</option></select></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('modal-account')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccount()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<div class="notification" id="notification"></div>
+</div><!-- app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const PORTFOLIOS={crypto:'Crypto Main',trading:'Trading',isa:'ISA',joint:'Joint Savings'};
+const CAT_COLORS={Groceries:'#3da374',Transport:'#5c8dd4',Investment:'#d4900a','Eating Out':'#c774d4','Crypto Buy':'#d45c5c','Crypto Sell':'#3da374',Salary:'#74d45c',Entertainment:'#d48c5c',Subscriptions:'#5cd4c7',Shopping:'#d45c8c',Utilities:'#8c5cd4',Other:'#7a7870'};
+const COIN_COLORS=['#f0b429','#5c8dd4','#c774d4','#3da374','#d45c5c','#5cd4c7','#d48c5c','#74d45c'];
+
+let currentPortfolio='crypto';
+let holdings=JSON.parse(localStorage.getItem('vault_holdings')||'[]');
+let transactions=JSON.parse(localStorage.getItem('vault_tx')||'[]');
+let accounts=JSON.parse(localStorage.getItem('vault_accounts')||'[]');
+let budgets=JSON.parse(localStorage.getItem('vault_budgets')||JSON.stringify({Groceries:400,Transport:150,'Eating Out':200,Entertainment:100,Subscriptions:80,Shopping:200,Utilities:120,Other:200}));
+let categoryRules=JSON.parse(localStorage.getItem('vault_rules')||'{}');
+let prices={};
+let pnlHistory=JSON.parse(localStorage.getItem('vault_pnl')||'[]');
+let budgetChart=null,txHistoryChart=null,pnlChart=null,allocChart=null,catBarChart=null;
+let txRangeDays=30,pnlRangeDays=7;
+
+function save(){
+  localStorage.setItem('vault_holdings',JSON.stringify(holdings));
+  localStorage.setItem('vault_tx',JSON.stringify(transactions));
+  localStorage.setItem('vault_accounts',JSON.stringify(accounts));
+  localStorage.setItem('vault_budgets',JSON.stringify(budgets));
+  localStorage.setItem('vault_rules',JSON.stringify(categoryRules));
+  localStorage.setItem('vault_pnl',JSON.stringify(pnlHistory));
+}
+
+function notify(msg){const n=document.getElementById('notification');n.textContent=msg;n.style.display='block';setTimeout(()=>n.style.display='none',3000);}
+
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});}
+setInterval(updateClock,1000);updateClock();
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const tabs=['portfolio','transactions','budget','accounts','analytics'];
+  const idx=tabs.indexOf(p);
+  if(idx>=0) document.querySelectorAll('.tab')[idx].classList.add('active');
+  if(p==='transactions') renderTx();
+  if(p==='budget') renderBudget();
+  if(p==='accounts') renderAccounts();
+  if(p==='analytics') renderAnalytics();
+}
+
+function setPortfolio(p,el){
+  currentPortfolio=p;
+  document.querySelectorAll('.sidebar-item').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('portfolio-label').textContent=PORTFOLIOS[p];
+  document.getElementById('alloc-port-label').textContent=PORTFOLIOS[p];
+  renderHoldings();updateStats();
+}
+
+async function refreshPrices(){
+  const ids=[...new Set(holdings.map(h=>h.coinId).filter(Boolean))];
+  if(!ids.length){document.getElementById('price-status').textContent='No holdings';return;}
+  document.getElementById('price-status').textContent='Fetching...';
+  try{
+    const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=gbp,usd&include_24hr_change=true`);
+    const d=await r.json();
+    prices=d;
+    const now=new Date().toISOString().split('T')[0];
+    let totalVal=0,totalInv=0;
+    holdings.filter(h=>h.portfolio==='crypto').forEach(h=>{if(prices[h.coinId]) totalVal+=prices[h.coinId].gbp*h.amount;totalInv+=h.invested;});
+    if(totalVal>0){
+      const last=pnlHistory[pnlHistory.length-1];
+      if(!last||last.date!==now) pnlHistory.push({date:now,value:+totalVal.toFixed(2),invested:+totalInv.toFixed(2)});
+      else{last.value=+totalVal.toFixed(2);last.invested=+totalInv.toFixed(2);}
+      save();
+    }
+    document.getElementById('price-status').innerHTML='<span class="live-dot"></span>'+new Date().toLocaleTimeString('en-GB',{hour12:false});
+    renderHoldings();updateStats();
+  }catch(e){document.getElementById('price-status').textContent='Rate limited — retry shortly';notify('CoinGecko rate limit — try in a minute');}
+}
+
+async function searchCoins(q){
+  if(q.length<2){document.getElementById('coin-results').style.display='none';return;}
+  try{
+    const r=await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+    const d=await r.json();
+    const res=document.getElementById('coin-results');res.innerHTML='';
+    const coins=(d.coins||[]).slice(0,8);
+    if(!coins.length){res.style.display='none';return;}
+    coins.forEach(c=>{
+      const div=document.createElement('div');div.className='search-result-item';
+      div.textContent=`${c.name} (${c.symbol.toUpperCase()})`;
+      div.onclick=()=>{
+        document.getElementById('h-coin-id').value=c.id;
+        document.getElementById('h-coin-symbol').value=c.symbol.toUpperCase();
+        document.getElementById('h-coin-name').value=`${c.name} (${c.symbol.toUpperCase()})`;
+        document.getElementById('h-search').value='';res.style.display='none';
+      };res.appendChild(div);
+    });res.style.display='block';
+  }catch(e){}
+}
+
+function openAddHolding(){
+  ['h-search','h-amount','h-invested'].forEach(id=>document.getElementById(id).value='');
+  ['h-coin-id','h-coin-symbol','h-coin-name'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('h-portfolio').value=currentPortfolio;
+  document.getElementById('modal-holding').style.display='flex';
+}
+function saveHolding(){
+  const coinId=document.getElementById('h-coin-id').value;
+  const symbol=document.getElementById('h-coin-symbol').value;
+  const name=document.getElementById('h-coin-name').value;
+  const amount=parseFloat(document.getElementById('h-amount').value)||0;
+  const invested=parseFloat(document.getElementById('h-invested').value)||0;
+  const port=document.getElementById('h-portfolio').value;
+  if(!coinId||!amount){notify('Select a coin and enter amount');return;}
+  const ex=holdings.findIndex(h=>h.coinId===coinId&&h.portfolio===port);
+  if(ex>=0){holdings[ex].amount+=amount;holdings[ex].invested+=invested;}
+  else holdings.push({coinId,symbol,name:name.split(' (')[0],amount,invested,portfolio:port,id:Date.now()});
+  save();closeModal('modal-holding');refreshPrices();notify('Holding added');
+}
+function deleteHolding(id){holdings=holdings.filter(h=>h.id!==id);save();renderHoldings();updateStats();}
+
+function renderHoldings(){
+  const port=holdings.filter(h=>h.portfolio===currentPortfolio);
+  const tbody=document.getElementById('holdings-table');
+  const empty=document.getElementById('holdings-empty');
+  if(!port.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=port.map(h=>{
+    const p=prices[h.coinId];
+    const price=p?p.gbp:null;const change24=p?p.gbp_24h_change:null;
+    const value=price!=null?price*h.amount:null;
+    const pnl=value!=null?value-h.invested:null;
+    const icon=h.symbol?h.symbol.substring(0,3):'?';
+    return `<tr>
+      <td><div class="coin-name"><div class="coin-icon">${icon}</div><div><div style="font-family:var(--font-ui)">${h.name}</div><div style="font-size:10px;color:var(--muted)">${h.symbol}</div></div></div></td>
+      <td>${h.amount.toLocaleString('en-GB',{maximumFractionDigits:6})}</td>
+      <td>${price?'£'+price.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:4}):'—'}</td>
+      <td>${value?'£'+value.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}</td>
+      <td>£${h.invested.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td>${pnl!=null?`<span class="badge ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}£${Math.abs(pnl).toFixed(2)}</span>`:'—'}</td>
+      <td>${change24!=null?`<span class="badge ${change24>=0?'pos':'neg'}">${change24>=0?'+':''}${change24.toFixed(2)}%</span>`:'—'}</td>
+      <td><button class="btn btn-sm" onclick="deleteHolding(${h.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats(){
+  const port=holdings.filter(h=>h.portfolio===currentPortfolio);
+  let totalVal=0,totalInv=0,totalChange=0;
+  port.forEach(h=>{const p=prices[h.coinId];if(p){totalVal+=p.gbp*h.amount;totalChange+=(p.gbp_24h_change/100)*p.gbp*h.amount;}totalInv+=h.invested;});
+  const pnl=totalVal-totalInv;const pnlPct=totalInv?(pnl/totalInv)*100:0;
+  document.getElementById('stat-total').textContent=totalVal?'£'+totalVal.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+  document.getElementById('stat-invested').textContent='£'+totalInv.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(totalVal){
+    const pe=document.getElementById('stat-pnl');
+    pe.textContent=(pnl>=0?'+':'')+'£'+Math.abs(pnl).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+    pe.className='stat-val '+(pnl>=0?'pos':'neg');
+    document.getElementById('stat-pnl-pct').textContent=(pnlPct>=0?'+':'')+pnlPct.toFixed(2)+'%';
+    const ce=document.getElementById('stat-24h');
+    ce.textContent=(totalChange>=0?'+':'')+'£'+Math.abs(totalChange).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+    ce.className='stat-val '+(totalChange>=0?'pos':'neg');
+  }
+}
+
+function autoCategory(desc){
+  const key=desc.toLowerCase().trim();
+  if(categoryRules[key]) return categoryRules[key];
+  if(/tesco|sainsbury|waitrose|aldi|lidl|morrisons|asda/.test(key)) return 'Groceries';
+  if(/uber|tfl|train|bus|national rail|oyster/.test(key)) return 'Transport';
+  if(/netflix|spotify|amazon prime|disney/.test(key)) return 'Subscriptions';
+  if(/btc|bitcoin|eth|ethereum|crypto|coinbase|binance/.test(key)) return 'Crypto Buy';
+  if(/salary|payroll|wages/.test(key)) return 'Salary';
+  if(/pret|costa|starbucks|nando|restaurant|cafe/.test(key)) return 'Eating Out';
+  return 'Other';
+}
+
+function openAddTx(){document.getElementById('tx-date').value=new Date().toISOString().split('T')[0];document.getElementById('modal-tx').style.display='flex';}
+function saveTx(){
+  const desc=document.getElementById('tx-desc').value.trim();
+  const amount=parseFloat(document.getElementById('tx-amount').value)||0;
+  const cat=document.getElementById('tx-cat').value;
+  if(!desc||!amount){notify('Fill in description and amount');return;}
+  categoryRules[desc.toLowerCase().trim()]=cat;
+  transactions.unshift({id:Date.now(),date:document.getElementById('tx-date').value,desc,amount,currency:'GBP',category:cat,portfolio:document.getElementById('tx-port').value});
+  save();closeModal('modal-tx');renderTx();notify('Transaction saved');
+}
+function editTxCat(id){
+  const tx=transactions.find(t=>t.id===id);if(!tx) return;
+  const cats=['Groceries','Transport','Eating Out','Entertainment','Investment','Crypto Buy','Crypto Sell','Salary','Utilities','Shopping','Subscriptions','Other'];
+  const newCat=prompt(`Change category for "${tx.desc}"\nCurrent: ${tx.category}\n\nOptions:\n${cats.join(', ')}`);
+  if(newCat&&cats.includes(newCat)){tx.category=newCat;categoryRules[tx.desc.toLowerCase().trim()]=newCat;save();renderTx();notify('Category updated');}
+}
+function filterTx(){renderTx(document.getElementById('tx-search').value,document.getElementById('tx-cat-filter').value);}
+function renderTx(search='',catFilter=''){
+  let txs=transactions;
+  if(search) txs=txs.filter(t=>t.desc.toLowerCase().includes(search.toLowerCase()));
+  if(catFilter) txs=txs.filter(t=>t.category===catFilter);
+  const list=document.getElementById('tx-list');
+  const empty=document.getElementById('tx-empty');
+  document.getElementById('tx-count').textContent=txs.length+' transactions';
+  const allCats=[...new Set(transactions.map(t=>t.category))];
+  const sel=document.getElementById('tx-cat-filter');const cur=sel.value;
+  sel.innerHTML='<option value="">All categories</option>'+allCats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  if(!txs.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=txs.map(t=>{
+    const col=CAT_COLORS[t.category]||'#7a7870';
+    return `<div class="tx-row">
+      <div style="color:var(--muted)">${t.date}</div>
+      <div style="font-family:var(--font-ui)">${t.desc}</div>
+      <div>${t.amount<0?'+':'−'}£${Math.abs(t.amount).toFixed(2)}</div>
+      <div style="color:var(--muted)">${t.currency||'GBP'}</div>
+      <div><span class="cat-pill" style="background:${col}22;color:${col}" onclick="editTxCat(${t.id})">${t.category}</span></div>
+      <div style="color:var(--muted);font-size:11px">${PORTFOLIOS[t.portfolio]||t.portfolio||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function handleCSV(e){
+  const file=e.target.files[0];if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const lines=ev.target.result.split('\n').filter(l=>l.trim());
+    const header=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
+    let added=0;
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+      const row={};header.forEach((h,j)=>row[h]=cols[j]||'');
+      const dateKey=header.find(h=>h.includes('date'));
+      const descKey=header.find(h=>h.includes('desc')||h.includes('name')||h.includes('merchant')||h.includes('narrat'));
+      const amtKey=header.find(h=>h.includes('amount')||h.includes('debit')||h.includes('credit'));
+      if(!descKey||!amtKey) continue;
+      const desc=row[descKey]||'Unknown';const amt=parseFloat(row[amtKey])||0;
+      if(!amt) continue;
+      transactions.push({id:Date.now()+i,date:row[dateKey]||new Date().toISOString().split('T')[0],desc,amount:amt,currency:'GBP',category:autoCategory(desc),portfolio:'crypto'});
+      added++;
+    }
+    save();renderTx();notify(`Imported ${added} transactions`);e.target.value='';
+  };r.readAsText(file);
+}
+
+function exportCSV(type){
+  let rows=[],filename='';
+  if(type==='transactions'){
+    filename='vault_transactions.csv';
+    rows=[['Date','Description','Amount (GBP)','Currency','Category','Portfolio'],...transactions.map(t=>[t.date,`"${t.desc}"`,t.amount,t.currency||'GBP',t.category,PORTFOLIOS[t.portfolio]||t.portfolio||''])];
+  } else if(type==='holdings'){
+    filename='vault_holdings.csv';
+    rows=[['Portfolio','Coin','Symbol','Amount','GBP Invested','Current Price (GBP)','Current Value (GBP)','P&L (GBP)'],...holdings.map(h=>{
+      const p=prices[h.coinId];const val=p?+(p.gbp*h.amount).toFixed(2):'';
+      const pnl=val!==''?+(val-h.invested).toFixed(2):'';
+      return [PORTFOLIOS[h.portfolio]||h.portfolio,h.name,h.symbol,h.amount,h.invested,p?p.gbp:'',val,pnl];
+    })];
+  } else if(type==='budget'){
+    filename='vault_budget.csv';
+    const now=new Date();
+    const monthTxs=transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&t.amount>0;});
+    const spending={};monthTxs.forEach(t=>{spending[t.category]=(spending[t.category]||0)+t.amount;});
+    rows=[['Category','Budget (GBP)','Spent (GBP)','Remaining (GBP)','% Used'],...Object.entries(budgets).map(([cat,bud])=>{
+      const sp=+(spending[cat]||0).toFixed(2);const rem=+(bud-sp).toFixed(2);const pct=bud?+((sp/bud)*100).toFixed(1):0;
+      return [cat,bud,sp,rem,pct+'%'];
+    })];
+  }
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+  notify(`Exported ${filename}`);
+}
+
+function renderBudget(){
+  const now=new Date();
+  const monthTxs=transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&t.amount>0;});
+  const spending={};monthTxs.forEach(t=>{spending[t.category]=(spending[t.category]||0)+t.amount;});
+  const totalSpent=Object.values(spending).reduce((a,b)=>a+b,0);
+  const totalBudget=Object.values(budgets).reduce((a,b)=>a+b,0);
+  document.getElementById('budget-spent').textContent='£'+totalSpent.toFixed(2);
+  document.getElementById('budget-total-val').textContent='£'+totalBudget.toFixed(2);
+  const rem=totalBudget-totalSpent;
+  const re=document.getElementById('budget-remaining');re.textContent=(rem>=0?'£':'−£')+Math.abs(rem).toFixed(2);re.className='stat-val '+(rem>=0?'':'neg');
+  document.getElementById('budget-bars').innerHTML=Object.entries(budgets).map(([cat,budget])=>{
+    const spent=spending[cat]||0;const pct=Math.min(100,(spent/budget)*100);
+    const col=pct>90?'var(--red)':pct>70?'var(--amber)':'var(--green)';
+    return `<div class="budget-bar"><div class="budget-label-row"><span>${cat}</span><span style="font-family:var(--font-mono);color:var(--muted)">£${spent.toFixed(0)} / £${budget}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div></div>`;
+  }).join('');
+  if(budgetChart) budgetChart.destroy();
+  const labels=Object.keys(spending);const vals=Object.values(spending);
+  if(!labels.length) return;
+  budgetChart=new Chart(document.getElementById('budget-chart').getContext('2d'),{type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:labels.map(l=>(CAT_COLORS[l]||'#7a7870')+'99'),borderColor:labels.map(l=>CAT_COLORS[l]||'#7a7870'),borderWidth:1}]},options:{plugins:{legend:{labels:{color:'#7a7870',font:{size:11}}}},cutout:'65%'}});
+}
+function openBudgetEdit(){
+  document.getElementById('budget-edit-fields').innerHTML=Object.entries(budgets).map(([cat,val])=>`<div class="form-row" style="align-items:center"><div style="font-size:13px">${cat}</div><input class="form-input" data-cat="${cat}" type="number" value="${val}"></div>`).join('');
+  document.getElementById('modal-budget').style.display='flex';
+}
+function saveBudgets(){document.querySelectorAll('#budget-edit-fields input').forEach(inp=>{budgets[inp.dataset.cat]=parseFloat(inp.value)||0;});save();closeModal('modal-budget');renderBudget();notify('Budgets updated');}
+
+function openAddAccount(){document.getElementById('modal-account').style.display='flex';}
+function saveAccount(){
+  const name=document.getElementById('acc-name').value.trim();
+  const bal=parseFloat(document.getElementById('acc-bal').value)||0;
+  if(!name){notify('Enter account name');return;}
+  accounts.push({id:Date.now(),name,type:document.getElementById('acc-type').value,balance:bal,currency:document.getElementById('acc-currency').value});
+  save();closeModal('modal-account');renderAccounts();notify('Account added');
+}
+function deleteAccount(id){accounts=accounts.filter(a=>a.id!==id);save();renderAccounts();}
+function renderAccounts(){
+  const grid=document.getElementById('account-grid');
+  if(!accounts.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">No accounts yet.</div>';return;}
+  grid.innerHTML=accounts.map(a=>`<div class="account-card"><div class="account-header"><div><div class="account-name">${a.name}</div><div class="account-type">${a.type}</div></div><button class="btn btn-sm" onclick="deleteAccount(${a.id})">✕</button></div><div class="account-bal">${a.currency==='GBP'?'£':a.currency==='USD'?'$':'€'}${a.balance.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>`).join('');
+}
+
+function dateStr(d){return d.toISOString().split('T')[0];}
+function pastDate(days){const d=new Date();d.setDate(d.getDate()-days);return d;}
+
+function setTxRange(days,el){
+  txRangeDays=days;
+  document.querySelectorAll('#tx-range-btns .range-btn').forEach(b=>b.classList.toggle('active',b===el));
+  renderTxHistoryChart();
+}
+function setPnlRange(days,el){
+  pnlRangeDays=days;
+  document.querySelectorAll('#pnl-range-btns .range-btn').forEach(b=>b.classList.toggle('active',b===el));
+  renderPnlChart();
+}
+
+function renderAnalytics(){renderTxHistoryChart();renderPnlChart();renderAllocChart();renderCatBarChart();}
+
+function renderTxHistoryChart(){
+  if(txHistoryChart) txHistoryChart.destroy();
+  const cutoff=txRangeDays>=9999?new Date('2000-01-01'):pastDate(txRangeDays);
+  const filtered=transactions.filter(t=>t.amount>0&&new Date(t.date)>=cutoff);
+  const weekly={};
+  filtered.forEach(t=>{
+    const d=new Date(t.date);const mon=new Date(d);mon.setDate(d.getDate()-d.getDay());
+    const key=dateStr(mon);weekly[key]=(weekly[key]||0)+t.amount;
+  });
+  const keys=Object.keys(weekly).sort();const vals=keys.map(k=>+weekly[k].toFixed(2));
+  if(!keys.length) return;
+  txHistoryChart=new Chart(document.getElementById('tx-history-chart').getContext('2d'),{
+    type:'bar',data:{labels:keys,datasets:[{label:'Weekly Spend (GBP)',data:vals,backgroundColor:'#d4900a55',borderColor:'#d4900a',borderWidth:1}]},
+    options:{plugins:{legend:{labels:{color:'#7a7870',font:{size:11}}}},scales:{x:{ticks:{color:'#7a7870',font:{size:10}},grid:{color:'#2a2b2e'}},y:{ticks:{color:'#7a7870',font:{size:10},callback:v=>'£'+v},grid:{color:'#2a2b2e'}}}}
+  });
+}
+
+function renderPnlChart(){
+  if(pnlChart) pnlChart.destroy();
+  const cutoff=pastDate(pnlRangeDays);
+  const hist=pnlHistory.filter(p=>new Date(p.date)>=cutoff);
+  if(hist.length<2){
+    const today=new Date();const labels=[];const vals=[];const invs=[];
+    for(let i=pnlRangeDays;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);labels.push(dateStr(d));const base=6100+Math.sin(i/3)*200+i*5;vals.push(+(base+Math.random()*300).toFixed(2));invs.push(6100);}
+    pnlChart=new Chart(document.getElementById('pnl-chart').getContext('2d'),{
+      type:'line',data:{labels,datasets:[{label:'Portfolio Value (demo)',data:vals,borderColor:'#f0b429',backgroundColor:'#f0b42922',tension:0.4,fill:true,pointRadius:0},{label:'GBP Invested',data:invs,borderColor:'#5c8dd4',borderDash:[4,4],pointRadius:0,fill:false}]},
+      options:{plugins:{legend:{labels:{color:'#7a7870',font:{size:11}}}},scales:{x:{ticks:{color:'#7a7870',font:{size:10},maxTicksLimit:8},grid:{color:'#2a2b2e'}},y:{ticks:{color:'#7a7870',font:{size:10},callback:v=>'£'+v.toLocaleString()},grid:{color:'#2a2b2e'}}}}
+    });return;
+  }
+  pnlChart=new Chart(document.getElementById('pnl-chart').getContext('2d'),{
+    type:'line',data:{labels:hist.map(p=>p.date),datasets:[{label:'Portfolio Value',data:hist.map(p=>p.value),borderColor:'#f0b429',backgroundColor:'#f0b42922',tension:0.4,fill:true,pointRadius:2},{label:'GBP Invested',data:hist.map(p=>p.invested),borderColor:'#5c8dd4',borderDash:[4,4],pointRadius:0,fill:false}]},
+    options:{plugins:{legend:{labels:{color:'#7a7870',font:{size:11}}}},scales:{x:{ticks:{color:'#7a7870',font:{size:10},maxTicksLimit:8},grid:{color:'#2a2b2e'}},y:{ticks:{color:'#7a7870',font:{size:10},callback:v=>'£'+v.toLocaleString()},grid:{color:'#2a2b2e'}}}}
+  });
+}
+
+function renderAllocChart(){
+  if(allocChart) allocChart.destroy();
+  const port=holdings.filter(h=>h.portfolio===currentPortfolio);
+  const labels=[];const vals=[];const colors=[];
+  port.forEach((h,i)=>{const p=prices[h.coinId];const val=p?+(p.gbp*h.amount).toFixed(2):h.invested;labels.push(h.symbol);vals.push(val);colors.push(COIN_COLORS[i%COIN_COLORS.length]);});
+  if(!vals.length) return;
+  allocChart=new Chart(document.getElementById('alloc-chart').getContext('2d'),{
+    type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1}]},
+    options:{plugins:{legend:{labels:{color:'#7a7870',font:{size:11}}}},cutout:'60%'}
+  });
+}
+
+function renderCatBarChart(){
+  if(catBarChart) catBarChart.destroy();
+  const cutoff=pastDate(30);
+  const recent=transactions.filter(t=>t.amount>0&&new Date(t.date)>=cutoff);
+  const spending={};recent.forEach(t=>{spending[t.category]=(spending[t.category]||0)+t.amount;});
+  const sorted=Object.entries(spending).sort((a,b)=>b[1]-a[1]);
+  if(!sorted.length) return;
+  catBarChart=new Chart(document.getElementById('cat-bar-chart').getContext('2d'),{
+    type:'bar',data:{labels:sorted.map(s=>s[0]),datasets:[{data:sorted.map(s=>+s[1].toFixed(2)),backgroundColor:sorted.map(s=>(CAT_COLORS[s[0]]||'#7a7870')+'99'),borderColor:sorted.map(s=>CAT_COLORS[s[0]]||'#7a7870'),borderWidth:1}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a7870',font:{size:10},callback:v=>'£'+v},grid:{color:'#2a2b2e'}},y:{ticks:{color:'#7a7870',font:{size:11}},grid:{color:'#2a2b2e'}}}}
+  });
+}
+
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+// Demo data
+function loadDemo(){
+  if(holdings.length) return;
+  holdings=[
+    {id:1,coinId:'bitcoin',symbol:'BTC',name:'Bitcoin',amount:0.15,invested:3200,portfolio:'crypto'},
+    {id:2,coinId:'ethereum',symbol:'ETH',name:'Ethereum',amount:1.8,invested:2100,portfolio:'crypto'},
+    {id:3,coinId:'solana',symbol:'SOL',name:'Solana',amount:12,invested:800,portfolio:'crypto'},
+    {id:4,coinId:'bitcoin',symbol:'BTC',name:'Bitcoin',amount:0.05,invested:1100,portfolio:'trading'},
+  ];
+  const cats=['Groceries','Transport','Eating Out','Subscriptions','Shopping','Entertainment'];
+  const descs={Groceries:['Tesco Express','Sainsburys','Waitrose'],Transport:['TfL Top Up','Uber'],Eating Out:['Pret A Manger','Nandos','Costa'],Subscriptions:['Spotify','Netflix'],Shopping:['ASOS','Amazon'],Entertainment:['Cinema','Steam']};
+  for(let i=90;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    if(Math.random()>0.55) continue;
+    const cat=cats[Math.floor(Math.random()*cats.length)];
+    const opts=descs[cat];const desc=opts[Math.floor(Math.random()*opts.length)];
+    transactions.push({id:Date.now()-i*1000,date:dateStr(d),desc,amount:+(5+Math.random()*80).toFixed(2),currency:'GBP',category:cat,portfolio:'crypto'});
+  }
+  transactions.push({id:1,date:dateStr(new Date()),desc:'BTC Purchase Coinbase',amount:500,currency:'GBP',category:'Crypto Buy',portfolio:'crypto'});
+  accounts=[
+    {id:201,name:'Monzo Current',type:'Current Account',balance:2340.50,currency:'GBP'},
+    {id:202,name:'Nationwide ISA',type:'ISA',balance:8200,currency:'GBP'},
+    {id:203,name:'Joint Savings',type:'Joint',balance:5500,currency:'GBP'},
+  ];
+  categoryRules={'tesco express':'Groceries','tfl top up':'Transport','spotify':'Subscriptions','pret a manger':'Eating Out','tesco superstore':'Groceries','btc purchase coinbase':'Crypto Buy'};
+  save();
+}
+
+loadDemo();
+renderHoldings();renderTx();renderAccounts();
+setTimeout(refreshPrices, 500);
+setInterval(refreshPrices, 60000);
+</script>
+</body>
+</html>
